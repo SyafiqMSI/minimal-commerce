@@ -41,7 +41,13 @@ RUN mkdir -p /var/www/storage/logs \
 
 EXPOSE 2465
 
-CMD php artisan config:cache && \
+CMD mkdir -p /var/www/storage/app/public/products && \
+    chmod -R 775 /var/www/storage/app/public && \
+    chown -R www-data:www-data /var/www/storage/app/public && \
+    php artisan config:clear && \
+    php artisan route:clear && \
+    php artisan cache:clear && \
+    php artisan config:cache && \
     php artisan route:cache && \
     php artisan storage:link --force || true && \
     php artisan l5-swagger:generate || true && \
