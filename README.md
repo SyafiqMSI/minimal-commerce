@@ -171,14 +171,40 @@ After the server is running, API documentation can be accessed at:
 http://localhost:8000/api/documentation
 ```
 
-### Using Authorization
+### Using Authorization (Bearer Token)
 
-1. Login using `/api/login` endpoint to get a token
-2. Click the "Authorize" button in Swagger UI
-3. Enter the token (without "Bearer" prefix)
-4. Click "Authorize" and "Close"
+1. **Get the Token**:
+   - Expand the `POST /api/login` endpoint.
+   - Click **"Try it out"**.
+   - Enter your email and password in the Request Body.
+   - Click **"Execute"**.
+   - Copy the `token` string from the Response body (e.g., `1|abc123xym...`).
 
-All endpoints requiring authentication will automatically use the provided token.
+2. **Authorize**:
+   - Click the **"Authorize"** button (lock icon) at the top or near an endpoint.
+   - In the **Value** box for `bearerAuth (http, Bearer)`, paste **only** the token you copied.
+     - *Do not add "Bearer " prefix.*
+   - Click **"Authorize"**, then **"Close"**.
+
+All endpoints requiring authentication (marked with a lock icon) will now use this token automatically.
+
+### Testing Endpoints
+
+1. Click on an endpoint name (e.g., `GET /api/products`) to expand it.
+2. Click the **"Try it out"** button on the right.
+3. If the endpoint requires parameters (like `id` or request body), enter them in the respective fields.
+4. Click the blue **"Execute"** button.
+5. Scroll down to see the **Response Body** (JSON data) and **Response Headers**.
+
+### Compiling Documentation
+
+If you make changes to the API endpoints or annotations, you need to regenerate the Swagger documentation:
+
+```bash
+php artisan l5-swagger:generate
+```
+
+*Note: In production, auto-generation is disabled by default. Ensure you run this command during your build process.*
 
 ## Testing
 
