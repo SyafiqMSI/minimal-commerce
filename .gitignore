@@ -27,3 +27,4 @@ docker-data/
 *.crt
 *.p12
 
+docker-compose-prod.yml
