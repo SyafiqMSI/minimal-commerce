@@ -16,7 +16,9 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip pcntl gd \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini
+RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini \
+    && echo "upload_max_filesize = 10M" > /usr/local/etc/php/conf.d/upload-limit.ini \
+    && echo "post_max_size = 12M" >> /usr/local/etc/php/conf.d/upload-limit.ini
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

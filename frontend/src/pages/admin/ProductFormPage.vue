@@ -249,7 +249,8 @@ const handleSubmit = async () => {
                                         <Upload class="w-6 h-6 text-primary" />
                                     </div>
                                     <p class="text-sm font-medium">Click to upload image</p>
-                                    <p class="text-xs text-muted-foreground mt-1">PNG, JPG, GIF up to 10MB</p>
+                                    <p v-if="errors.image" class="text-sm text-destructive mt-2">{{ errors.image }}</p>
+                                    <p v-else class="text-xs text-muted-foreground mt-2">PNG, JPG, GIF up to 10MB</p>
                                 </label>
                             </div>
                         </div>
