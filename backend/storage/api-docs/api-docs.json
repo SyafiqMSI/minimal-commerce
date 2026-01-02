@@ -1390,6 +1390,7 @@
                                     "name",
                                     "description",
                                     "price",
+                                    "quantity",
                                     "category_id"
                                 ],
                                 "properties": {
@@ -1404,6 +1405,10 @@
                                     "price": {
                                         "type": "number",
                                         "example": 99.99
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 10
                                     },
                                     "category_id": {
                                         "type": "integer",
@@ -1535,6 +1540,10 @@
                                     "price": {
                                         "type": "number",
                                         "example": 149.99
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 20
                                     },
                                     "category_id": {
                                         "type": "integer",

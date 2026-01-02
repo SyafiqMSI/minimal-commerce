@@ -146,10 +146,11 @@ class ProductController extends Controller
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
      *             @OA\Schema(
-     *                 required={"name","description","price","category_id"},
+     *                 required={"name","description","price","quantity","category_id"},
      *                 @OA\Property(property="name", type="string", example="Product Name"),
      *                 @OA\Property(property="description", type="string", example="Product description here"),
      *                 @OA\Property(property="price", type="number", example=99.99),
+     *                 @OA\Property(property="quantity", type="integer", example=10),
      *                 @OA\Property(property="category_id", type="integer", example=1),
      *                 @OA\Property(property="image", type="string", format="binary")
      *             )
@@ -222,6 +223,7 @@ class ProductController extends Controller
      *             @OA\Property(property="name", type="string", example="Updated Product Name"),
      *             @OA\Property(property="description", type="string", example="Updated description"),
      *             @OA\Property(property="price", type="number", example=149.99),
+     *             @OA\Property(property="quantity", type="integer", example=20),
      *             @OA\Property(property="category_id", type="integer", example=2)
      *         )
      *     ),

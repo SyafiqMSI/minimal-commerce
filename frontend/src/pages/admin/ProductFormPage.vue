@@ -85,6 +85,11 @@ const validateForm = () => {
     } else if (isNaN(form.value.price) || Number(form.value.price) < 0) {
         errors.value.price = 'Price must be a valid positive number'
     }
+    if (!form.value.quantity) {
+        errors.value.quantity = 'Quantity is required'
+    } else if (isNaN(form.value.quantity) || Number(form.value.quantity) < 0) {
+        errors.value.quantity = 'Quantity must be a valid non-negative number'
+    }
     if (!form.value.category_id) {
         errors.value.category_id = 'Category is required'
     }
@@ -101,6 +106,7 @@ const handleSubmit = async () => {
     formData.append('name', form.value.name)
     formData.append('description', form.value.description)
     formData.append('price', form.value.price)
+    formData.append('quantity', form.value.quantity)
     formData.append('category_id', form.value.category_id)
     if (form.value.image) {
         formData.append('image', form.value.image)
