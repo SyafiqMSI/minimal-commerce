@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
@@ -21,16 +22,28 @@ class CategoryController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
      *         )
-     *     )
+     *     ),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function index(): JsonResponse
     {
-        $categories = Category::withCount('products')->get();
+        try {
+            $categories = Category::withCount('products')->get();
 
-        return response()->json([
-            'data' => $categories,
-        ]);
+            return response()->json([
+                'data' => $categories,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve categories', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to retrieve categories. Please try again later.',
+            ], 500);
+        }
     }
 
     /**
@@ -52,14 +65,26 @@ class CategoryController extends Controller
      *             @OA\Property(property="data", type="object")
      *         )
      *     ),
-     *     @OA\Response(response=404, description="Category not found")
+     *     @OA\Response(response=404, description="Category not found"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function show(Category $category): JsonResponse
     {
-        return response()->json([
-            'data' => $category->load('products'),
-        ]);
+        try {
+            return response()->json([
+                'data' => $category->load('products'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve category', [
+                'category_id' => $category->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to retrieve category details.',
+            ], 500);
+        }
     }
 
     /**
@@ -86,24 +111,48 @@ class CategoryController extends Controller
      *     ),
      *     @OA\Response(response=401, description="Unauthenticated"),
      *     @OA\Response(response=403, description="Forbidden"),
-     *     @OA\Response(response=422, description="Validation error")
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name',
-            'description' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:categories,name',
+                'description' => 'nullable|string',
+            ]);
 
-        $validated['slug'] = Str::slug($validated['name']);
+            $validated['slug'] = Str::slug($validated['name']);
 
-        $category = Category::create($validated);
+            $category = Category::create($validated);
 
-        return response()->json([
-            'message' => 'Category created successfully',
-            'data' => $category,
-        ], 201);
+            Log::info('Category created successfully', [
+                'category_id' => $category->id,
+                'name' => $category->name,
+                'user_id' => $request->user()->id ?? null,
+            ]);
+
+            return response()->json([
+                'message' => 'Category created successfully',
+                'data' => $category,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to create category', [
+                'name' => $request->name ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to create category. Please try again later.',
+            ], 500);
+        }
     }
 
     /**
@@ -137,26 +186,49 @@ class CategoryController extends Controller
      *     @OA\Response(response=401, description="Unauthenticated"),
      *     @OA\Response(response=403, description="Forbidden"),
      *     @OA\Response(response=404, description="Category not found"),
-     *     @OA\Response(response=422, description="Validation error")
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function update(Request $request, Category $category): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255|unique:categories,name,' . $category->id,
-            'description' => 'nullable|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'sometimes|required|string|max:255|unique:categories,name,' . $category->id,
+                'description' => 'nullable|string',
+            ]);
 
-        if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+            if (isset($validated['name'])) {
+                $validated['slug'] = Str::slug($validated['name']);
+            }
+
+            $category->update($validated);
+
+            Log::info('Category updated successfully', [
+                'category_id' => $category->id,
+                'user_id' => $request->user()->id ?? null,
+            ]);
+
+            return response()->json([
+                'message' => 'Category updated successfully',
+                'data' => $category,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to update category', [
+                'category_id' => $category->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to update category. Please try again later.',
+            ], 500);
         }
-
-        $category->update($validated);
-
-        return response()->json([
-            'message' => 'Category updated successfully',
-            'data' => $category,
-        ]);
     }
 
     /**
@@ -182,21 +254,41 @@ class CategoryController extends Controller
      *     @OA\Response(response=401, description="Unauthenticated"),
      *     @OA\Response(response=403, description="Forbidden"),
      *     @OA\Response(response=404, description="Category not found"),
-     *     @OA\Response(response=422, description="Cannot delete category with products")
+     *     @OA\Response(response=422, description="Cannot delete category with products"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function destroy(Category $category): JsonResponse
     {
-        if ($category->products()->count() > 0) {
+        try {
+            if ($category->products()->count() > 0) {
+                return response()->json([
+                    'message' => 'Cannot delete category with existing products. Please move or delete the products first.',
+                ], 422);
+            }
+
+            $categoryId = $category->id;
+            $categoryName = $category->name;
+            $category->delete();
+
+            Log::info('Category deleted successfully', [
+                'category_id' => $categoryId,
+                'category_name' => $categoryName,
+            ]);
+
             return response()->json([
-                'message' => 'Cannot delete category with existing products. Please move or delete the products first.',
-            ], 422);
+                'message' => 'Category deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete category', [
+                'category_id' => $category->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to delete category. Please try again later.',
+            ], 500);
         }
-
-        $category->delete();
-
-        return response()->json([
-            'message' => 'Category deleted successfully',
-        ]);
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { toast } from 'vue-sonner'
@@ -7,11 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Package, Trash2, Minus, Plus, ShoppingCart, ArrowRight } from 'lucide-vue-next'
+import { Input } from '@/components/ui/input'
+import { Package, Trash2, Minus, Plus, ShoppingCart, ArrowRight, Check } from 'lucide-vue-next'
 import { confirmModal } from '@/components/ui/confirmation-dialog'
 
 const router = useRouter()
 const cartStore = useCartStore()
+
+const selectedItems = ref(new Set())
+const selectAll = ref(false)
 
 onMounted(async () => {
     await cartStore.fetchCart()
@@ -26,7 +30,12 @@ const formatPrice = (price) => {
 
 const handleUpdateQuantity = async (item, newQuantity) => {
     if (newQuantity < 1) return
-    await cartStore.updateQuantity(item.id, newQuantity)
+    const result = await cartStore.updateQuantity(item.id, newQuantity)
+    if (result.success) {
+        toast.success('Quantity updated')
+    } else {
+        toast.error(result.message || 'Failed to update quantity')
+    }
 }
 
 const handleRemoveItem = async (item) => {
@@ -52,6 +61,76 @@ const handleClearCart = async () => {
 const handleCheckout = () => {
     router.push('/user/checkout')
 }
+
+const handleQuantityInput = (item, event) => {
+    const value = parseInt(event.target.value)
+    if (value >= 1) {
+        item.quantity = value
+    }
+}
+
+const handleQuantityBlur = async (item) => {
+    if (item.quantity < 1) {
+        item.quantity = 1
+    }
+    const result = await cartStore.updateQuantity(item.id, item.quantity)
+    if (result.success) {
+        toast.success('Quantity updated')
+    } else {
+        toast.error(result.message || 'Failed to update quantity')
+    }
+}
+
+const selectedCartItems = computed(() => {
+    return cartStore.items.filter(item => selectedItems.value.has(item.id))
+})
+
+const selectedTotal = computed(() => {
+    return selectedCartItems.value.reduce((sum, item) => sum + item.subtotal, 0)
+})
+
+const selectedTotalItems = computed(() => {
+    return selectedCartItems.value.reduce((sum, item) => sum + item.quantity, 0)
+})
+
+const handleSelectItem = (itemId) => {
+    if (selectedItems.value.has(itemId)) {
+        selectedItems.value.delete(itemId)
+    } else {
+        selectedItems.value.add(itemId)
+    }
+    updateSelectAllState()
+}
+
+const handleSelectAll = () => {
+    if (selectAll.value) {
+        selectedItems.value.clear()
+    } else {
+        cartStore.items.forEach(item => selectedItems.value.add(item.id))
+    }
+    updateSelectAllState()
+}
+
+const updateSelectAllState = () => {
+    selectAll.value = selectedItems.value.size === cartStore.items.length && cartStore.items.length > 0
+}
+
+const handleCheckoutSelected = () => {
+    if (selectedItems.value.size === 0) {
+        toast.error('Please select at least one item to checkout')
+        return
+    }
+
+    const selectedItemIds = Array.from(selectedItems.value)
+    sessionStorage.setItem('checkoutItems', JSON.stringify(selectedItemIds))
+
+    router.push('/user/checkout')
+}
+
+const handleCheckoutAll = () => {
+    sessionStorage.removeItem('checkoutItems')
+    router.push('/user/checkout')
+}
 </script>
 
 <template>
@@ -61,16 +140,28 @@ const handleCheckout = () => {
                 <h1 class="text-3xl font-bold mb-2">Shopping Cart</h1>
                 <p class="text-muted-foreground">{{ cartStore.totalItems }} item(s) in your cart</p>
             </div>
-            <Button 
-                v-if="cartStore.items.length > 0"
-                variant="outline" 
-                size="sm" 
-                class="gap-2 text-destructive hover:text-destructive"
-                @click="handleClearCart"
-            >
-                <Trash2 class="w-4 h-4" />
-                Clear Cart
-            </Button>
+            <div class="flex gap-2">
+                <Button
+                    v-if="cartStore.items.length > 0"
+                    variant="outline"
+                    size="sm"
+                    class="gap-2"
+                    @click="handleSelectAll"
+                >
+                    <Checkbox :model-value="selectAll" />
+                    {{ selectAll ? 'Deselect All' : 'Select All' }}
+                </Button>
+                <Button
+                    v-if="cartStore.items.length > 0"
+                    variant="outline"
+                    size="sm"
+                    class="gap-2 text-destructive hover:text-destructive"
+                    @click="handleClearCart"
+                >
+                    <Trash2 class="w-4 h-4" />
+                    Clear Cart
+                </Button>
+            </div>
         </div>
 
         <div v-if="cartStore.isLoading" class="space-y-4">
@@ -91,12 +182,23 @@ const handleCheckout = () => {
 
         <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-4">
-                <Card v-for="item in cartStore.items" :key="item.id" class="border-border/50">
+                <Card
+                    v-for="item in cartStore.items"
+                    :key="item.id"
+                    :class="[
+                        'border-border/50 transition-all duration-200 cursor-pointer relative',
+                        selectedItems.has(item.id) ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/30'
+                    ]"
+                    @click="handleSelectItem(item.id)"
+                >
+                    <div v-if="selectedItems.has(item.id)" class="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                        <Check class="w-3 h-3 text-primary-foreground" />
+                    </div>
                     <CardContent class="p-4">
                         <div class="flex gap-4">
-                            <RouterLink :to="`/products/${item.product.id}`" class="flex-shrink-0">
+                            <RouterLink :to="`/products/${item.product.id}`" class="flex-shrink-0" @click.stop>
                                 <div class="w-24 h-24 rounded-lg bg-muted overflow-hidden">
-                                    <img 
+                                    <img
                                         v-if="item.product.image_url"
                                         :src="item.product.image_url"
                                         :alt="item.product.name"
@@ -133,19 +235,26 @@ const handleCheckout = () => {
                                 </Button>
 
                                 <div class="flex items-center border rounded-lg">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
                                         class="h-8 w-8"
                                         @click="handleUpdateQuantity(item, item.quantity - 1)"
                                         :disabled="item.quantity <= 1"
                                     >
                                         <Minus class="w-3 h-3" />
                                     </Button>
-                                    <span class="w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
+                                    <Input
+                                        :model-value="item.quantity"
+                                        type="number"
+                                        min="1"
+                                        class="w-12 h-8 text-center border-0 focus:ring-0 focus:ring-offset-0 text-sm no-spinner"
+                                        @input="handleQuantityInput(item, $event)"
+                                        @blur="handleQuantityBlur(item)"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
                                         class="h-8 w-8"
                                         @click="handleUpdateQuantity(item, item.quantity + 1)"
                                     >
@@ -162,9 +271,16 @@ const handleCheckout = () => {
                 <Card class="sticky top-24 border-border/50">
                     <CardHeader>
                         <CardTitle>Order Summary</CardTitle>
+                        <CardDescription v-if="selectedItems.size > 0">
+                            {{ selectedTotalItems }} selected item(s)
+                        </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-4">
-                        <div class="flex justify-between text-sm">
+                        <div v-if="selectedItems.size > 0" class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">Selected Subtotal ({{ selectedTotalItems }} items)</span>
+                            <span>{{ formatPrice(selectedTotal) }}</span>
+                        </div>
+                        <div v-else class="flex justify-between text-sm">
                             <span class="text-muted-foreground">Subtotal ({{ cartStore.totalItems }} items)</span>
                             <span>{{ formatPrice(cartStore.total) }}</span>
                         </div>
@@ -175,11 +291,25 @@ const handleCheckout = () => {
                         <Separator />
                         <div class="flex justify-between font-bold text-lg">
                             <span>Total</span>
-                            <span class="text-primary">{{ formatPrice(cartStore.total) }}</span>
+                            <span class="text-primary">{{ selectedItems.size > 0 ? formatPrice(selectedTotal) : formatPrice(cartStore.total) }}</span>
                         </div>
                     </CardContent>
-                    <CardFooter>
-                        <Button class="w-full gap-2" size="lg" @click="handleCheckout">
+                    <CardFooter class="space-y-2">
+                        <Button
+                            v-if="selectedItems.size > 0"
+                            class="w-full gap-2"
+                            size="lg"
+                            @click="handleCheckoutSelected"
+                        >
+                            Checkout Selected ({{ selectedItems.size }})
+                            <ArrowRight class="w-4 h-4" />
+                        </Button>
+                        <Button
+                            v-else
+                            class="w-full gap-2"
+                            size="lg"
+                            @click="handleCheckout"
+                        >
                             Proceed to Checkout
                             <ArrowRight class="w-4 h-4" />
                         </Button>

@@ -10,6 +10,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -37,25 +39,43 @@ class AuthController extends Controller
      *             @OA\Property(property="token", type="string", example="1|abc123...")
      *         )
      *     ),
-     *     @OA\Response(response=422, description="Validation error")
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'user',
-        ]);
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'user',
+            ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-            'token' => $token,
-        ], 201);
+            Log::info('User registered successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
+
+            return response()->json([
+                'message' => 'User registered successfully',
+                'user' => $user,
+                'token' => $token,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Registration failed', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to register user. Please try again later.',
+            ], 500);
+        }
     }
 
     /**
@@ -80,25 +100,47 @@ class AuthController extends Controller
      *             @OA\Property(property="token", type="string", example="1|abc123...")
      *         )
      *     ),
-     *     @OA\Response(response=401, description="Invalid credentials")
+     *     @OA\Response(response=401, description="Invalid credentials"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        try {
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                Log::warning('Login attempt failed', [
+                    'email' => $request->email,
+                ]);
+
+                return response()->json([
+                    'message' => 'Invalid email or password',
+                ], 401);
+            }
+
+            $user = User::where('email', $request->email)->firstOrFail();
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            Log::info('User logged in successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
+
             return response()->json([
-                'message' => 'Invalid credentials',
-            ], 401);
+                'message' => 'Login successful',
+                'user' => $user,
+                'token' => $token,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Login failed', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'An error occurred during login. Please try again later.',
+            ], 500);
         }
-
-        $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Login successful',
-            'user' => $user,
-            'token' => $token,
-        ]);
     }
 
     /**
@@ -114,16 +156,33 @@ class AuthController extends Controller
      *             @OA\Property(property="message", type="string", example="Logged out successfully")
      *         )
      *     ),
-     *     @OA\Response(response=401, description="Unauthenticated")
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            $user = $request->user();
+            $user->currentAccessToken()->delete();
 
-        return response()->json([
-            'message' => 'Logged out successfully',
-        ]);
+            Log::info('User logged out successfully', [
+                'user_id' => $user->id,
+            ]);
+
+            return response()->json([
+                'message' => 'Logged out successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Logout failed', [
+                'user_id' => $request->user()->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to logout. Please try again.',
+            ], 500);
+        }
     }
 
     /**
@@ -139,13 +198,25 @@ class AuthController extends Controller
      *             @OA\Property(property="user", type="object")
      *         )
      *     ),
-     *     @OA\Response(response=401, description="Unauthenticated")
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=500, description="Internal server error")
      * )
      */
     public function user(Request $request): JsonResponse
     {
-        return response()->json([
-            'user' => $request->user(),
-        ]);
+        try {
+            return response()->json([
+                'user' => $request->user(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve user profile', [
+                'user_id' => $request->user()->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to retrieve user profile.',
+            ], 500);
+        }
     }
 }

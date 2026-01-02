@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useProductStore } from '@/stores/product'
 import { useAuthStore } from '@/stores/auth'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
 import { toast } from 'vue-sonner'
 import { Package, ArrowLeft, Tag, LayoutDashboard, LogOut, User, ShoppingCart, Heart, Minus, Plus, Check } from 'lucide-vue-next'
 import Image from '@/components/Image.vue'
@@ -39,29 +40,39 @@ const isInCart = computed(() => {
     return cartStore.isInCart(product.value.id)
 })
 
-onMounted(async () => {
+const fetchProductData = async (productId) => {
     isLoading.value = true
-    product.value = await productStore.fetchProduct(route.params.id)
-    
+    product.value = await productStore.fetchProduct(productId)
+
     if (!product.value) {
         router.push('/products')
         return
     }
 
     await productStore.fetchCategories()
-    
+
     productStore.setFilters({ category_id: product.value.category_id })
     await productStore.fetchProducts()
     relatedProducts.value = productStore.products.filter(p => p.id !== product.value.id).slice(0, 4)
-    
+
     if (authStore.isAuthenticated) {
         await Promise.all([
             cartStore.fetchCart(),
             wishlistStore.fetchWishlist()
         ])
     }
-    
+
     isLoading.value = false
+}
+
+onMounted(async () => {
+    await fetchProductData(route.params.id)
+})
+
+watch(() => route.params.id, async (newId, oldId) => {
+    if (newId !== oldId) {
+        await fetchProductData(newId)
+    }
 })
 
 const formatPrice = (price) => {
@@ -87,15 +98,31 @@ const increaseQuantity = () => {
     quantity.value++
 }
 
+const validateQuantity = () => {
+    if (quantity.value < 1) {
+        quantity.value = 1
+    }
+}
+
 const handleAddToCart = async () => {
     if (!authStore.isAuthenticated) {
         router.push('/login')
         return
     }
 
+    if (product.value.quantity === 0) {
+        toast.error('Product is out of stock')
+        return
+    }
+
+    if (quantity.value > product.value.quantity) {
+        toast.error(`Only ${product.value.quantity} items available in stock`)
+        return
+    }
+
     isAddingToCart.value = true
     const result = await cartStore.addToCart(product.value.id, quantity.value)
-    
+
     if (result.success) {
         toast.success('Product added to cart!')
     } else {
@@ -220,16 +247,6 @@ const handleBuyNow = async () => {
                             <Package class="w-24 h-24 text-muted-foreground/30" />
                         </div>
                     </div>
-                    <Button 
-                        variant="outline" 
-                        size="icon" 
-                        class="absolute top-4 right-4 bg-background/80 backdrop-blur-sm"
-                        :class="{ 'text-red-500 hover:text-red-600': isInWishlist }"
-                        @click="handleToggleWishlist"
-                        :disabled="isTogglingWishlist"
-                    >
-                        <Heart class="w-5 h-5" :fill="isInWishlist ? 'currentColor' : 'none'" />
-                    </Button>
                 </div>
 
                 <div class="space-y-6 lg:col-span-2">
@@ -238,8 +255,24 @@ const handleBuyNow = async () => {
                             <Tag class="w-3 h-3 mr-1" />
                             {{ product.category?.name }}
                         </Badge>
-                        <h1 class="text-3xl md:text-4xl font-bold mb-4">{{ product.name }}</h1>
-                        <p class="text-3xl font-bold text-primary">{{ formatPrice(product.price) }}</p>
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <h1 class="text-3xl md:text-4xl font-bold flex-1">{{ product.name }}</h1>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                :class="{ 'text-red-500 hover:text-red-600': isInWishlist }"
+                                @click="handleToggleWishlist"
+                                :disabled="isTogglingWishlist"
+                            >
+                                <Heart class="w-5 h-5" :fill="isInWishlist ? 'currentColor' : 'none'" />
+                            </Button>
+                        </div>
+                        <p class="text-3xl font-bold text-primary mb-2">{{ formatPrice(product.price) }}</p>
+                        <p class="text-sm text-muted-foreground">
+                            Stock: <span :class="product.quantity > 0 ? 'text-green-600' : 'text-red-600'">
+                                {{ product.quantity > 0 ? `${product.quantity} available` : 'Out of stock' }}
+                            </span>
+                        </p>
                     </div>
 
                     <Separator />
@@ -258,7 +291,13 @@ const handleBuyNow = async () => {
                                 <Button variant="ghost" size="icon" @click="decreaseQuantity" :disabled="quantity <= 1">
                                     <Minus class="w-4 h-4" />
                                 </Button>
-                                <span class="w-12 text-center font-medium">{{ quantity }}</span>
+                                <Input
+                                    v-model.number="quantity"
+                                    type="number"
+                                    min="1"
+                                    class="w-16 h-9 text-center border-0 focus:ring-0 focus:ring-offset-0 no-spinner"
+                                    @input="validateQuantity"
+                                />
                                 <Button variant="ghost" size="icon" @click="increaseQuantity">
                                     <Plus class="w-4 h-4" />
                                 </Button>
@@ -267,24 +306,24 @@ const handleBuyNow = async () => {
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <Button 
-                            size="lg" 
-                            class="gap-2 flex-1" 
+                        <Button
+                            size="lg"
+                            class="gap-2 flex-1 min-h-[48px] px-6"
                             @click="handleAddToCart"
-                            :disabled="isAddingToCart"
+                            :disabled="isAddingToCart || product.quantity === 0"
                         >
                             <Check v-if="isInCart" class="w-5 h-5" />
                             <ShoppingCart v-else class="w-5 h-5" />
-                            {{ isInCart ? 'Added to Cart' : 'Add to Cart' }}
+                            <span class="font-medium">{{ product.quantity === 0 ? 'Out of Stock' : (isInCart ? 'Added to Cart' : 'Add to Cart') }}</span>
                         </Button>
-                        <Button 
-                            variant="outline" 
-                            size="lg" 
-                            class="flex-1"
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            class="flex-1 min-h-[48px] px-6"
                             @click="handleBuyNow"
-                            :disabled="isAddingToCart"
+                            :disabled="isAddingToCart || product.quantity === 0"
                         >
-                            Buy Now
+                            <span class="font-medium">{{ product.quantity === 0 ? 'Out of Stock' : 'Buy Now' }}</span>
                         </Button>
                     </div>
                 </div>
@@ -293,36 +332,34 @@ const handleBuyNow = async () => {
             <div v-if="relatedProducts.length > 0" class="mt-20">
                 <h2 class="text-2xl font-bold mb-8">Related Products</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <RouterLink 
-                        v-for="relatedProduct in relatedProducts" 
+                    <Card
+                        v-for="relatedProduct in relatedProducts"
                         :key="relatedProduct.id"
-                        :to="`/products/${relatedProduct.id}`"
-                        class="group"
+                        class="overflow-hidden h-full hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 border-border/50 cursor-pointer"
+                        @click="$router.push(`/products/${relatedProduct.id}`)"
                     >
-                        <Card class="overflow-hidden h-full hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-1 border-border/50">
-                            <div class="relative h-48 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
-                                <img 
-                                    v-if="relatedProduct.image_url"
-                                    :src="relatedProduct.image_url"
-                                    :alt="relatedProduct.name"
-                                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                />
-                                <div v-else class="flex items-center justify-center h-full">
-                                    <Package class="w-12 h-12 text-muted-foreground/30" />
-                                </div>
+                        <div class="relative h-48 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
+                            <img
+                                v-if="relatedProduct.image_url"
+                                :src="relatedProduct.image_url"
+                                :alt="relatedProduct.name"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                            <div v-else class="flex items-center justify-center h-full">
+                                <Package class="w-12 h-12 text-muted-foreground/30" />
                             </div>
-                            <CardHeader class="pb-2">
-                                <CardTitle class="text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                                    {{ relatedProduct.name }}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent class="pt-0">
-                                <span class="text-lg font-bold text-primary">
-                                    {{ formatPrice(relatedProduct.price) }}
-                                </span>
-                            </CardContent>
-                        </Card>
-                    </RouterLink>
+                        </div>
+                        <CardHeader class="pb-2">
+                            <CardTitle class="text-lg line-clamp-1 hover:text-primary transition-colors">
+                                {{ relatedProduct.name }}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent class="pt-0">
+                            <span class="text-lg font-bold text-primary">
+                                {{ formatPrice(relatedProduct.price) }}
+                            </span>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>

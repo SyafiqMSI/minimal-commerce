@@ -15,6 +15,7 @@ import Image from '@/components/Image.vue'
 import WorldMap from '@/components/WorldMap.vue'
 import ReviewCard from '@/components/RevieCard.vue'
 import { confirmModal } from '@/components/ui/confirmation-dialog'
+import { debounce } from 'perfect-debounce'
 
 const reviews = [
     {
@@ -75,15 +76,17 @@ onMounted(async () => {
     await Promise.all(promises)
 })
 
-const handleSearch = () => {
-    productStore.setFilters({ search: searchQuery.value, category_id: selectedCategory.value })
+const debouncedSearch = debounce(() => {
+    productStore.setFilters({
+        search: searchQuery.value,
+        category_id: selectedCategory.value
+    })
     productStore.fetchProducts()
-}
+}, 300)
 
 const handleCategoryChange = (value) => {
     selectedCategory.value = value
-    productStore.setFilters({ category_id: value === 'all' ? '' : value })
-    productStore.fetchProducts()
+    debouncedSearch()
 }
 
 const formatPrice = (price) => {
@@ -217,11 +220,11 @@ const handleLogout = async () => {
                 <div class="flex flex-col md:flex-row gap-4 max-w-3xl mx-auto">
                     <div class="relative flex-1">
                         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input 
+                        <Input
                             v-model="searchQuery"
                             placeholder="Search products..."
                             class="pl-10"
-                            @keyup.enter="handleSearch"
+                            @input="debouncedSearch"
                         />
                     </div>
                     <Select :model-value="selectedCategory" @update:model-value="handleCategoryChange">
@@ -235,10 +238,6 @@ const handleLogout = async () => {
                             </SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button @click="handleSearch" class="gap-2">
-                        <Search class="w-4 h-4" />
-                        Search
-                    </Button>
                 </div>
             </div>
         </section>
@@ -329,21 +328,21 @@ const handleLogout = async () => {
                             <Package class="w-6 h-6 text-primary" />
                         </div>
                         <h3 class="text-lg font-semibold mb-2">Free Shipping</h3>
-                        <p class="text-muted-foreground text-sm">Free shipping on orders over Rp 500.000</p>
+                        <p class="text-muted-foreground text-sm">Free shipping on all orders</p>
                     </div>
                     <div class="text-center">
                         <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                             <Star class="w-6 h-6 text-primary" />
                         </div>
                         <h3 class="text-lg font-semibold mb-2">Quality Guarantee</h3>
-                        <p class="text-muted-foreground text-sm">100% authentic products guaranteed</p>
+                        <p class="text-muted-foreground text-sm">100% original products guaranteed</p>
                     </div>
                     <div class="text-center">
                         <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                             <ShoppingCart class="w-6 h-6 text-primary" />
                         </div>
-                        <h3 class="text-lg font-semibold mb-2">Easy Returns</h3>
-                        <p class="text-muted-foreground text-sm">30-day hassle-free return policy</p>
+                        <h3 class="text-lg font-semibold mb-2">Easy Shopping</h3>
+                        <p class="text-muted-foreground text-sm">Easy shopping experience</p>
                     </div>
                 </div>
             </div>

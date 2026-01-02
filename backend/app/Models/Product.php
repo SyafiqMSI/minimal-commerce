@@ -17,6 +17,7 @@ class Product extends Model
         'price',
         'category_id',
         'image',
+        'quantity',
     ];
 
     protected $casts = [
@@ -36,5 +37,29 @@ class Product extends Model
             return url(Storage::url($this->image));
         }
         return null;
+    }
+
+    public function isInStock(): bool
+    {
+        return $this->quantity > 0;
+    }
+
+    public function hasStock(int $quantity): bool
+    {
+        return $this->quantity >= $quantity;
+    }
+
+    public function reduceStock(int $quantity): bool
+    {
+        if ($this->hasStock($quantity)) {
+            $this->decrement('quantity', $quantity);
+            return true;
+        }
+        return false;
+    }
+
+    public function restoreStock(int $quantity): void
+    {
+        $this->increment('quantity', $quantity);
     }
 }

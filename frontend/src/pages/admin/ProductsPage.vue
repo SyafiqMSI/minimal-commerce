@@ -31,6 +31,7 @@ const productStore = useProductStore();
 
 const searchQuery = ref("");
 const selectedCategory = ref("");
+const selectedStockStatus = ref("");
 const deleteDialogOpen = ref(false);
 const productToDelete = ref(null);
 
@@ -48,7 +49,27 @@ const handleSearch = () => {
 
 const handleCategoryChange = (value) => {
     selectedCategory.value = value
-    productStore.setFilters({ category_id: value === 'all' ? '' : value })
+    productStore.setFilters({
+        category_id: value === 'all' ? '' : value,
+        stock_status: selectedStockStatus.value
+    })
+    productStore.fetchProducts()
+}
+
+const handleStockStatusChange = (value) => {
+    selectedStockStatus.value = value
+    productStore.setFilters({
+        category_id: selectedCategory.value === 'all' ? '' : selectedCategory.value,
+        stock_status: value
+    })
+    productStore.fetchProducts()
+}
+
+const handleClearFilters = () => {
+    searchQuery.value = ""
+    selectedCategory.value = ""
+    selectedStockStatus.value = ""
+    productStore.resetFilters()
     productStore.fetchProducts()
 }
 
@@ -117,6 +138,22 @@ const columns: ColumnDef<any>[] = [
         cell: ({ row }) => h('div', { class: 'font-semibold text-primary' }, formatPrice(row.getValue('price')))
     },
     {
+        accessorKey: 'quantity',
+        header: ({ column }) => h(DataTableColumnHeader, { column, title: "Stock" }),
+        cell: ({ row }) => {
+            const quantity = row.getValue('quantity') as number
+            const isLowStock = quantity > 0 && quantity <= 10
+            const isOutOfStock = quantity === 0
+
+            return h('div', {
+                class: `font-medium ${
+                    isOutOfStock ? 'text-red-600' :
+                    isLowStock ? 'text-orange-600' : 'text-green-600'
+                }`
+            }, quantity > 0 ? quantity : 'Out of stock')
+        }
+    },
+    {
         id: "actions",
         header: () => h('div', { class: 'text-center' }, 'Actions'),
         meta: { isActionColumn: true },
@@ -162,12 +199,10 @@ const formattedTotalProducts = computed(() => new Intl.NumberFormat('id-ID').for
 </script>
 
 <template>
-        <div>
-            <h1 class="text-2xl font-bold text-foreground">Products Management</h1>
-            <p class="text-muted-foreground mt-2">Manage your products inventory</p>
-        </div>
-        
-
+    <div>
+        <h1 class="text-2xl font-bold text-foreground">Products Management</h1>
+        <p class="text-muted-foreground mt-2">Manage your products inventory</p>
+    </div>
   <section class="my-6">
     <div class="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"></div>

@@ -93,6 +93,11 @@ const routes = [
                 component: () => import('@/pages/user/DashboardPage.vue')
             },
             {
+                path: 'products',
+                name: 'UserProducts',
+                component: () => import('@/pages/ProductsPage.vue')
+            },
+            {
                 path: 'cart',
                 name: 'UserCart',
                 component: () => import('@/pages/user/CartPage.vue')

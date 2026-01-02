@@ -33,6 +33,7 @@ RUN mkdir -p /var/www/storage/logs \
     /var/www/storage/framework/sessions \
     /var/www/storage/framework/views \
     /var/www/storage/app/public \
+    /var/www/storage/api-docs \
     && chown -R www-data:www-data /var/www/storage \
     && chown -R www-data:www-data /var/www/bootstrap/cache \
     && chmod -R 775 /var/www/storage \
@@ -43,5 +44,6 @@ EXPOSE 2465
 CMD php artisan config:cache && \
     php artisan route:cache && \
     php artisan storage:link --force || true && \
+    php artisan l5-swagger:generate || true && \
     php artisan serve --host=0.0.0.0 --port=2465
 

@@ -11,7 +11,8 @@ export const useProductStore = defineStore('product', () => {
         search: '',
         category_id: '',
         min_price: '',
-        max_price: ''
+        max_price: '',
+        stock_status: ''
     })
 
     async function fetchProducts() {
@@ -24,7 +25,25 @@ export const useProductStore = defineStore('product', () => {
             if (filters.value.max_price) params.append('max_price', filters.value.max_price)
 
             const response = await api.get(`/products?${params.toString()}`)
-            products.value = response.data.data
+            let fetchedProducts = response.data.data
+
+            // Apply client-side stock status filtering
+            if (filters.value.stock_status) {
+                fetchedProducts = fetchedProducts.filter(product => {
+                    switch (filters.value.stock_status) {
+                        case 'in_stock':
+                            return product.quantity > 0
+                        case 'low_stock':
+                            return product.quantity > 0 && product.quantity <= 10
+                        case 'out_of_stock':
+                            return product.quantity === 0
+                        default:
+                            return true
+                    }
+                })
+            }
+
+            products.value = fetchedProducts
         } catch (error) {
             console.error('Error fetching products:', error)
         } finally {
@@ -116,7 +135,8 @@ export const useProductStore = defineStore('product', () => {
             search: '',
             category_id: '',
             min_price: '',
-            max_price: ''
+            max_price: '',
+            stock_status: ''
         }
     }
 

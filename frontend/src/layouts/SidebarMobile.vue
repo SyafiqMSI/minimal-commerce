@@ -152,19 +152,33 @@ function isExpanded(item) {
             <router-link
               v-else
               :to="isFintech ? item.route.replace('/admin', '/enumerator') : item.route"
-              class="relative flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300"
+              class="flex items-center justify-between gap-3 px-3 py-2 rounded-md transition-all duration-300"
               :class="[
                 props.isCollapsed ? 'justify-center' : '',
-                isActiveRoute(route.path, (isFintech ? item.route.replace('/admin', '/enumerator') : item.route)) 
-                  ? 'bg-primary/15 text-primary dark:bg-white/20 dark:text-white backdrop-blur-md border border-primary/30 dark:border-white/30 shadow-[inset_0_1px_0_rgba(59,130,246,0.2)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]' 
+                isActiveRoute(route.path, (isFintech ? item.route.replace('/admin', '/enumerator') : item.route))
+                  ? 'bg-primary/15 text-primary dark:bg-white/20 dark:text-white backdrop-blur-md border border-primary/30 dark:border-white/30 shadow-[inset_0_1px_0_rgba(59,130,246,0.2)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]'
                   : 'text-foreground dark:text-white hover:bg-primary/10 dark:hover:bg-accent/70',
               ]"
               @click="props.onClose"
             >
-              <span class="w-5 h-5 flex items-center justify-center">
-                <component :is="item.icon" class="w-5 h-5" />
+              <div class="flex items-center gap-3">
+                <span class="w-5 h-5 flex items-center justify-center">
+                  <component :is="item.icon" class="w-5 h-5" />
+                </span>
+                <span v-if="!props.isCollapsed" class="transition-opacity duration-300 text-sm">{{ item.label }}</span>
+              </div>
+              <span
+                v-if="item.badge && item.badge.value && !props.isCollapsed"
+                class="bg-primary text-primary-foreground text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ml-auto"
+              >
+                {{ item.badge.value > 99 ? '99+' : item.badge.value }}
               </span>
-              <span v-if="!props.isCollapsed" class="transition-opacity duration-300 text-sm">{{ item.label }}</span>
+              <span
+                v-if="item.badge && item.badge.value && props.isCollapsed"
+                class="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+              >
+                {{ item.badge.value > 99 ? '99+' : item.badge.value }}
+              </span>
             </router-link>
           </template>
         </div>

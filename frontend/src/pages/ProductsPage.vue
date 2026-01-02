@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount, computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useProductStore } from '@/stores/product'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+import { debounce } from 'perfect-debounce'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,11 @@ const productStore = useProductStore()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 const route = useRoute()
+
+const showHeader = computed(() => {
+    // Don't show header if inside user/admin layout
+    return !route.path.startsWith('/user') && !route.path.startsWith('/admin')
+})
 
 const searchQuery = ref('')
 const selectedCategory = ref('')
@@ -52,20 +58,19 @@ onMounted(async () => {
     await Promise.all(promises)
 })
 
-const handleSearch = () => {
-    productStore.setFilters({ 
-        search: searchQuery.value, 
+const debouncedSearch = debounce(() => {
+    productStore.setFilters({
+        search: searchQuery.value,
         category_id: selectedCategory.value,
         min_price: minPrice.value,
         max_price: maxPrice.value
     })
     productStore.fetchProducts()
-}
+}, 300)
 
 const handleCategoryChange = (value) => {
     selectedCategory.value = value
-    productStore.setFilters({ category_id: value === 'all' ? '' : value })
-    productStore.fetchProducts()
+    debouncedSearch()
 }
 
 const handleLogout = async () => {
@@ -118,7 +123,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="min-h-screen bg-background">
-        <header class="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
+        <header v-if="showHeader" class="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
             <div class="container mx-auto px-4 py-4">
                 <div class="flex items-center justify-between">
                     <RouterLink to="/" class="flex items-center gap-2 group">
@@ -172,7 +177,7 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="container mx-auto px-4 py-8">
-            <div class="flex items-center gap-4 mb-8">
+            <div class="flex items-center gap-4 mb-8" v-if="showHeader">
                 <RouterLink to="/">
                     <Button variant="ghost" size="icon">
                         <ArrowLeft class="w-4 h-4" />
@@ -185,6 +190,12 @@ onBeforeUnmount(() => {
                     </p>
                 </div>
             </div>
+            <div v-else class="mb-8">
+                <h1 class="text-3xl font-bold">All Products</h1>
+                <p class="text-muted-foreground">
+                    {{ productStore.products.length }} products found
+                </p>
+            </div>
 
             <Card class="mb-8 border-border/50">
                 <CardContent class="p-4 md:p-6">
@@ -192,11 +203,11 @@ onBeforeUnmount(() => {
                         <!-- Search Row -->
                         <div class="relative">
                             <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input 
+                            <Input
                                 v-model="searchQuery"
                                 placeholder="Search products..."
                                 class="pl-10 h-11"
-                                @keyup.enter="handleSearch"
+                                @input="debouncedSearch"
                             />
                         </div>
                         
@@ -221,31 +232,27 @@ onBeforeUnmount(() => {
                             <div class="grid grid-cols-2 gap-3 flex-1">
                                 <div class="space-y-1.5">
                                     <label class="text-xs font-medium text-muted-foreground">Min Price</label>
-                                    <Input 
+                                    <Input
                                         v-model="minPrice"
                                         type="number"
                                         placeholder="Rp 0"
                                         class="h-10"
-                                        @keyup.enter="handleSearch"
+                                        @input="debouncedSearch"
                                     />
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="text-xs font-medium text-muted-foreground">Max Price</label>
-                                    <Input 
+                                    <Input
                                         v-model="maxPrice"
                                         type="number"
                                         placeholder="Rp 999.999.999"
                                         class="h-10"
-                                        @keyup.enter="handleSearch"
+                                        @input="debouncedSearch"
                                     />
                                 </div>
                             </div>
                             <div class="flex gap-2 sm:flex-shrink-0">
-                                <Button @click="handleSearch" class="gap-2 flex-1 sm:flex-none">
-                                    <Search class="w-4 h-4" />
-                                    Search
-                                </Button>
-                                <Button variant="outline" @click="clearFilters" class="flex-1 sm:flex-none">
+                                <Button variant="outline" @click="clearFilters" class="w-full sm:w-auto">
                                     Clear
                                 </Button>
                             </div>
@@ -299,9 +306,12 @@ onBeforeUnmount(() => {
                                 {{ product.description }}
                             </p>
                         </CardContent>
-                        <CardFooter class="pt-0">
+                        <CardFooter class="pt-0 flex justify-between items-center">
                             <span class="text-lg font-bold text-primary">
                                 {{ formatPrice(product.price) }}
+                            </span>
+                            <span class="text-xs" :class="product.quantity > 0 ? 'text-green-600' : 'text-red-600'">
+                                {{ product.quantity > 0 ? `Stock: ${product.quantity}` : 'Out of stock' }}
                             </span>
                         </CardFooter>
                     </Card>

@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watchEffect } from 'vue';
 import SidebarDesktop from './SidebarDesktop.vue';
 import SidebarMobile from './SidebarMobile.vue';
 import Header from './Header.vue';
 import { LogOut } from 'lucide-vue-next';
 import Sheet from '@/components/ui/sheet/Sheet.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useCartStore } from '@/stores/cart';
+import { useWishlistStore } from '@/stores/wishlist';
 import { useRoute } from 'vue-router';
 import { createAdminNavigationItems } from './adminNavigationItems.js';
 import { createUserNavigationItems } from './userNavigationItems';
@@ -29,6 +31,8 @@ const basePath = computed(() => {
 });
 
 const auth = useAuthStore();
+const cartStore = useCartStore();
+const wishlistStore = useWishlistStore();
 
 const handleLogout = async () => {
   const confirmed = await confirmModal('Confirm Logout', 'Are you sure you want to logout?');
@@ -51,6 +55,21 @@ const navigationItems = computed(() => {
     return adminNavigationItems.value;
   }
   return userNavigationItems.value;
+});
+
+// Fetch cart and wishlist data for user navigation badges
+const fetchUserData = async () => {
+  if (auth.isAuthenticated && !auth.isAdmin && route.path.startsWith('/user')) {
+    await Promise.all([
+      cartStore.fetchCart(),
+      wishlistStore.fetchWishlist()
+    ]);
+  }
+};
+
+// Watch for route changes and authentication state
+watchEffect(async () => {
+  await fetchUserData();
 });
 
 const accountItems = computed(() => [

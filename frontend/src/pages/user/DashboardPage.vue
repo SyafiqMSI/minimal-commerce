@@ -17,31 +17,41 @@ const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 const orderStore = useOrderStore()
 
-const stats = ref({
-    totalOrders: 0,
-    wishlistCount: 0,
-    totalSpent: 0,
-    cartItems: 0
-})
+const stats = computed(() => {
+    if (!authStore.isAuthenticated) {
+        return {
+            totalOrders: 0,
+            wishlistCount: 0,
+            totalSpent: 0,
+            cartItems: 0
+        }
+    }
 
-onMounted(async () => {
-    await Promise.all([
-        productStore.fetchProducts(),
-        cartStore.fetchCart(),
-        wishlistStore.fetchWishlist(),
-        orderStore.fetchOrders()
-    ])
-    
     const totalSpent = orderStore.orders
         .filter(o => o.payment_status === 'paid')
         .reduce((sum, o) => sum + parseFloat(o.total_amount), 0)
-    
-    stats.value = {
-        totalOrders: orderStore.pagination.total || orderStore.orders.length,
+
+    return {
+        totalOrders: orderStore.orders.length,
         wishlistCount: wishlistStore.items.length,
         totalSpent: totalSpent,
         cartItems: cartStore.totalItems
     }
+})
+
+onMounted(async () => {
+    const promises = [
+        productStore.fetchProducts(),
+        productStore.fetchCategories()
+    ]
+
+    if (authStore.isAuthenticated) {
+        promises.push(cartStore.fetchCart())
+        promises.push(wishlistStore.fetchWishlist())
+        promises.push(orderStore.fetchOrders())
+    }
+
+    await Promise.all(promises)
 })
 
 const formatPrice = (price) => {
@@ -246,9 +256,12 @@ const getStatusColor = (status) => {
                                         {{ product.name }}
                                     </CardTitle>
                                 </CardHeader>
-                                <CardFooter class="p-2 pt-0">
+                                <CardFooter class="p-2 pt-0 flex justify-between items-center">
                                     <span class="text-xs font-bold text-primary">
                                         {{ formatPrice(product.price) }}
+                                    </span>
+                                    <span class="text-[10px]" :class="product.quantity > 0 ? 'text-green-600' : 'text-red-600'">
+                                        {{ product.quantity > 0 ? `Stock: ${product.quantity}` : 'Out of stock' }}
                                     </span>
                                 </CardFooter>
                             </Card>

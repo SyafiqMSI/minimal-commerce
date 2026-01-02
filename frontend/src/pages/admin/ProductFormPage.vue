@@ -21,6 +21,7 @@ const form = ref({
     name: '',
     description: '',
     price: '',
+    quantity: '',
     category_id: '',
     image: null
 })
@@ -39,6 +40,7 @@ onMounted(async () => {
                 name: product.name,
                 description: product.description,
                 price: product.price,
+                quantity: product.quantity,
                 category_id: String(product.category_id),
                 image: null
             }
@@ -170,7 +172,7 @@ const handleSubmit = async () => {
                                 <p v-if="errors.description" class="text-sm text-destructive">{{ errors.description }}</p>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="space-y-2">
                                     <Label for="price">Price (IDR)</Label>
                                     <Input 
@@ -182,6 +184,19 @@ const handleSubmit = async () => {
                                         :class="{ 'border-destructive': errors.price }"
                                     />
                                     <p v-if="errors.price" class="text-sm text-destructive">{{ errors.price }}</p>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label for="quantity">Stock Quantity</Label>
+                                    <Input
+                                        id="quantity"
+                                        v-model="form.quantity"
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        :class="{ 'border-destructive': errors.quantity }"
+                                    />
+                                    <p v-if="errors.quantity" class="text-sm text-destructive">{{ errors.quantity }}</p>
                                 </div>
 
                                 <div class="space-y-2">
@@ -215,7 +230,7 @@ const handleSubmit = async () => {
                                     <X class="w-4 h-4" />
                                 </Button>
                             </div>
-                            <div v-else class="border-2 border-dashed rounded-lg p-8 text-center w-full">
+                            <div v-else class="border-2 border-dashed rounded-lg p-8 text-center w-full min-h-[225px] flex items-center justify-center">
                                 <input 
                                     type="file" 
                                     accept="image/*"

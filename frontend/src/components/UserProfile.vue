@@ -33,9 +33,6 @@ const displayName = computed(() => auth.user?.name || 'User');
 const displayRole = computed(() => auth.user?.role || 'Guest');
 const displayEmail = computed(() => (auth.user as any)?.email || '');
 const dashboardPath = computed(() => {
-  const role = auth.user?.role?.toLowerCase();
-  if (role === 'admin') return '/admin';
-  if (role === 'user') return '/user';
   return '/';
 });
 
@@ -75,14 +72,12 @@ const handleLogout = async () => {
             </p>
           </div>
         </div>
-        <router-link :to="dashboardPath" class="w-full">
-          <DropdownMenuItem class="cursor-pointer">
-            <div class="flex items-center gap-2">
-              <Home class="w-4 h-4" />
-              Dashboard
-            </div>
-          </DropdownMenuItem>
-        </router-link>
+        <DropdownMenuItem class="cursor-pointer" @click="router.push('/')">
+          <div class="flex items-center gap-2">
+            <Home class="w-4 h-4" />
+            Landing Page
+          </div>
+        </DropdownMenuItem>
         <DropdownMenuItem class="cursor-pointer" @click="handleLogout">
           <div class="flex items-center gap-2 text-destructive">
             <LogOut class="w-4 h-4" />

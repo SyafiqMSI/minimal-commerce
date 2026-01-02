@@ -6,7 +6,7 @@ import { useOrderStore } from '@/stores/order'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Package, ShoppingBag, Tag, TrendingUp, ArrowRight, Clock, CheckCircle, Truck } from 'lucide-vue-next'
+import { Package, ShoppingBag, Tag, TrendingUp, ArrowRight, Clock, CheckCircle, Truck, Users } from 'lucide-vue-next'
 
 const productStore = useProductStore()
 const orderStore = useOrderStore()
@@ -18,7 +18,11 @@ const stats = ref({
     pendingOrders: 0,
     totalRevenue: 0,
     todayRevenue: 0,
-    todayOrders: 0
+    todayOrders: 0,
+    totalStock: 0,
+    outOfStock: 0,
+    lowStock: 0,
+    totalUsers: 0
 })
 
 onMounted(async () => {
@@ -29,6 +33,10 @@ onMounted(async () => {
         orderStore.fetchAdminOrders()
     ])
     
+    const totalStock = productStore.products.reduce((sum, product) => sum + product.quantity, 0)
+    const outOfStock = productStore.products.filter(product => product.quantity === 0).length
+    const lowStock = productStore.products.filter(product => product.quantity > 0 && product.quantity <= 10).length
+
     stats.value = {
         totalProducts: productStore.products.length,
         totalCategories: productStore.categories.length,
@@ -36,7 +44,11 @@ onMounted(async () => {
         pendingOrders: orderStore.stats?.pending_orders || 0,
         totalRevenue: orderStore.stats?.total_revenue || 0,
         todayRevenue: orderStore.stats?.today_revenue || 0,
-        todayOrders: orderStore.stats?.today_orders || 0
+        todayOrders: orderStore.stats?.today_orders || 0,
+        totalStock: totalStock,
+        outOfStock: outOfStock,
+        lowStock: lowStock,
+        totalUsers: orderStore.stats?.total_users || 0
     }
 })
 
@@ -75,7 +87,7 @@ const getStatusColor = (status) => {
             <p class="text-muted-foreground">Welcome back! Here's an overview of your store.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
             <Card class="border-border/50 hover:border-primary/30 transition-colors">
                 <CardHeader class="pb-2">
                     <CardDescription class="flex items-center gap-2">
@@ -109,6 +121,21 @@ const getStatusColor = (status) => {
             <Card class="border-border/50 hover:border-primary/30 transition-colors">
                 <CardHeader class="pb-2">
                     <CardDescription class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                            <Users class="w-4 h-4 text-purple-500" />
+                        </div>
+                        Total Users
+                    </CardDescription>
+                    <CardTitle class="text-3xl">{{ stats.totalUsers }}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p class="text-sm text-muted-foreground">Registered users</p>
+                </CardContent>
+            </Card>
+
+            <Card class="border-border/50 hover:border-primary/30 transition-colors">
+                <CardHeader class="pb-2">
+                    <CardDescription class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
                             <Clock class="w-4 h-4 text-yellow-500" />
                         </div>
@@ -133,6 +160,51 @@ const getStatusColor = (status) => {
                 </CardHeader>
                 <CardContent>
                     <p class="text-sm text-muted-foreground">From {{ stats.totalOrders }} orders</p>
+                </CardContent>
+            </Card>
+
+            <Card class="border-border/50 hover:border-primary/30 transition-colors">
+                <CardHeader class="pb-2">
+                    <CardDescription class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <Package class="w-4 h-4 text-blue-500" />
+                        </div>
+                        Total Stock
+                    </CardDescription>
+                    <CardTitle class="text-3xl">{{ stats.totalStock }}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p class="text-sm text-muted-foreground">Items in inventory</p>
+                </CardContent>
+            </Card>
+
+            <Card class="border-border/50 hover:border-primary/30 transition-colors" :class="{ 'border-red-500': stats.outOfStock > 0 }">
+                <CardHeader class="pb-2">
+                    <CardDescription class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                            <Package class="w-4 h-4 text-red-500" />
+                        </div>
+                        Out of Stock
+                    </CardDescription>
+                    <CardTitle class="text-3xl" :class="{ 'text-red-600': stats.outOfStock > 0 }">{{ stats.outOfStock }}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p class="text-sm text-muted-foreground">Products need restocking</p>
+                </CardContent>
+            </Card>
+
+            <Card class="border-border/50 hover:border-primary/30 transition-colors" :class="{ 'border-orange-500': stats.lowStock > 0 }">
+                <CardHeader class="pb-2">
+                    <CardDescription class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                            <Package class="w-4 h-4 text-orange-500" />
+                        </div>
+                        Low Stock
+                    </CardDescription>
+                    <CardTitle class="text-3xl" :class="{ 'text-orange-600': stats.lowStock > 0 }">{{ stats.lowStock }}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p class="text-sm text-muted-foreground">Products with ≤10 stock</p>
                 </CardContent>
             </Card>
         </div>

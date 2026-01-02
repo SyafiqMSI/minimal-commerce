@@ -224,17 +224,25 @@ function handleFloatingLeave() {
             <template v-else>
               <Tooltip v-if="props.isCollapsed">
                 <TooltipTrigger as-child>
-                  <router-link
-                    :to="item.route"
-                    class="relative flex items-center gap-3 px-3 py-2 rounded-md text-foreground dark:text-white transition-all duration-300 justify-center"
-                    :class="[
-                      isActive(item) ? 'bg-primary/15 text-primary dark:bg-white/20 dark:text-white backdrop-blur-md border border-primary/20 dark:border-white/30 shadow-sm' : 'hover:bg-primary/10 dark:hover:bg-accent/70',
-                    ]"
-                  >
-                    <span class="w-5 h-5 flex items-center justify-center">
-                      <component :is="item.icon" class="w-5 h-5" />
+                  <div class="relative">
+                    <router-link
+                      :to="item.route"
+                      class="relative flex items-center gap-3 px-3 py-2 rounded-md text-foreground dark:text-white transition-all duration-300 justify-center"
+                      :class="[
+                        isActive(item) ? 'bg-primary/15 text-primary dark:bg-white/20 dark:text-white backdrop-blur-md border border-primary/20 dark:border-white/30 shadow-sm' : 'hover:bg-primary/10 dark:hover:bg-accent/70',
+                      ]"
+                    >
+                      <span class="w-5 h-5 flex items-center justify-center">
+                        <component :is="item.icon" class="w-5 h-5" />
+                      </span>
+                    </router-link>
+                    <span
+                      v-if="item.badge && item.badge.value"
+                      class="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                    >
+                      {{ item.badge.value > 99 ? '99+' : item.badge.value }}
                     </span>
-                  </router-link>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   <p>{{ item.label }}</p>
@@ -244,15 +252,23 @@ function handleFloatingLeave() {
               <router-link
                 v-else
                 :to="item.route"
-                class="relative flex items-center gap-3 px-3 py-2 rounded-md text-foreground dark:text-white transition-all duration-300"
+                class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-foreground dark:text-white transition-all duration-300"
                 :class="[
                   isActiveRoute(route.path, item.route) ? 'bg-primary/15 text-primary dark:bg-white/20 dark:text-white backdrop-blur-md border border-primary/20 dark:border-white/30 shadow-sm' : 'hover:bg-primary/10 dark:hover:bg-accent/70',
                 ]"
               >
-                <span class="w-5 h-5 flex items-center justify-center">
-                  <component :is="item.icon" class="w-5 h-5" />
+                <div class="flex items-center gap-3">
+                  <span class="w-5 h-5 flex items-center justify-center">
+                    <component :is="item.icon" class="w-5 h-5" />
+                  </span>
+                  <span class="transition-opacity duration-300 text-sm">{{ item.label }}</span>
+                </div>
+                <span
+                  v-if="item.badge && item.badge.value"
+                  class="bg-primary text-primary-foreground text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ml-auto"
+                >
+                  {{ item.badge.value > 99 ? '99+' : item.badge.value }}
                 </span>
-                <span class="transition-opacity duration-300 text-sm">{{ item.label }}</span>
               </router-link>
             </template>
           </template>

@@ -96,13 +96,15 @@ const handlePayOrder = async (order) => {
         </div>
 
         <Tabs :defaultValue="activeTab" @update:modelValue="handleTabChange">
-            <TabsList class="grid w-full grid-cols-5">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="processing">Processing</TabsTrigger>
-                <TabsTrigger value="shipped">Shipped</TabsTrigger>
-                <TabsTrigger value="delivered">Delivered</TabsTrigger>
-            </TabsList>
+            <div class="overflow-x-auto -mx-1 px-1 sm:overflow-x-visible sm:mx-0 sm:px-0">
+                <TabsList class="inline-flex w-full min-w-[500px] sm:min-w-0 sm:w-full">
+                    <TabsTrigger value="all" class="flex-shrink-0 sm:flex-1">All</TabsTrigger>
+                    <TabsTrigger value="pending" class="flex-shrink-0 sm:flex-1">Pending</TabsTrigger>
+                    <TabsTrigger value="processing" class="flex-shrink-0 sm:flex-1">Processing</TabsTrigger>
+                    <TabsTrigger value="shipped" class="flex-shrink-0 sm:flex-1">Shipped</TabsTrigger>
+                    <TabsTrigger value="delivered" class="flex-shrink-0 sm:flex-1">Delivered</TabsTrigger>
+                </TabsList>
+            </div>
         </Tabs>
 
         <div v-if="orderStore.isLoading" class="space-y-4">

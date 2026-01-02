@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, h } from 'vue'
+import { debounce } from 'perfect-debounce'
 import { useOrderStore } from '@/stores/order'
 import { toast } from 'vue-sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -82,6 +83,10 @@ const getApiFilters = () => {
 const handleSearch = async () => {
     await orderStore.fetchAdminOrders(getApiFilters())
 }
+
+const debouncedSearch = debounce(() => {
+    handleSearch()
+}, 300)
 
 const handleFilterChange = async () => {
     await orderStore.fetchAdminOrders(getApiFilters())
@@ -280,7 +285,7 @@ const columns = [
                                 v-model="filters.search" 
                                 placeholder="Search by order number, customer name..."
                                 class="pl-9"
-                                @keyup.enter="handleSearch"
+                                @input="debouncedSearch"
                             />
                         </div>
                     </div>

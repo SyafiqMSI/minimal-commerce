@@ -21,6 +21,7 @@
     "lucide-vue-next": "^0.562.0",
     "motion-v": "^1.7.5",
     "nprogress": "^0.2.0",
+    "perfect-debounce": "^2.0.0",
     "pinia": "^3.0.4",
     "reka-ui": "^2.7.0",
     "tailwind-merge": "^3.4.0",

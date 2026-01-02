@@ -22,6 +22,7 @@ const authStore = useAuthStore()
 const isSubmitting = ref(false)
 const orderCreated = ref(false)
 const createdOrder = ref(null)
+const selectedItemIds = ref([])
 
 const form = ref({
     shipping_name: '',
@@ -33,9 +34,40 @@ const form = ref({
 
 const errors = ref({})
 
+const checkoutItems = computed(() => {
+    if (selectedItemIds.value.length > 0) {
+        return cartStore.items.filter(item => selectedItemIds.value.includes(item.id))
+    }
+    return cartStore.items
+})
+
+const checkoutTotal = computed(() => {
+    return checkoutItems.value.reduce((sum, item) => sum + item.subtotal, 0)
+})
+
+const checkoutTotalItems = computed(() => {
+    return checkoutItems.value.reduce((sum, item) => sum + item.quantity, 0)
+})
+
 onMounted(async () => {
+    const storedSelectedItems = sessionStorage.getItem('checkoutItems')
+    if (storedSelectedItems) {
+        selectedItemIds.value = JSON.parse(storedSelectedItems)
+        sessionStorage.removeItem('checkoutItems')
+    }
+
     await cartStore.fetchCart()
-    
+
+    if (selectedItemIds.value.length > 0) {
+        const availableSelectedItems = cartStore.items.filter(item =>
+            selectedItemIds.value.includes(item.id)
+        )
+        if (availableSelectedItems.length !== selectedItemIds.value.length) {
+            router.push('/user/cart')
+            return
+        }
+    }
+
     if (cartStore.items.length === 0) {
         router.push('/user/cart')
         return
@@ -77,8 +109,13 @@ const handleSubmit = async () => {
     }
 
     isSubmitting.value = true
-    
-    const result = await orderStore.createOrder(form.value)
+
+    const orderData = { ...form.value }
+    if (selectedItemIds.value.length > 0) {
+        orderData.selected_item_ids = selectedItemIds.value
+    }
+
+    const result = await orderStore.createOrder(orderData)
     
     if (result.success) {
         createdOrder.value = result.data
@@ -125,7 +162,9 @@ const handleViewOrder = () => {
             </Button>
             <div>
                 <h1 class="text-3xl font-bold mb-1">Checkout</h1>
-                <p class="text-muted-foreground">Complete your order</p>
+                <p class="text-muted-foreground">
+                    {{ selectedItemIds.length > 0 ? `Checkout ${checkoutTotalItems} selected item(s)` : 'Complete your order' }}
+                </p>
             </div>
         </div>
 
@@ -241,7 +280,7 @@ const handleViewOrder = () => {
                     </CardHeader>
                     <CardContent class="space-y-4">
                         <div class="space-y-3 max-h-64 overflow-y-auto">
-                            <div v-for="item in cartStore.items" :key="item.id" class="flex gap-3">
+                            <div v-for="item in checkoutItems" :key="item.id" class="flex gap-3">
                                 <div class="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
                                     <img 
                                         v-if="item.product.image_url"
@@ -266,7 +305,7 @@ const handleViewOrder = () => {
                         <div class="space-y-2">
                             <div class="flex justify-between text-sm">
                                 <span class="text-muted-foreground">Subtotal</span>
-                                <span>{{ formatPrice(cartStore.total) }}</span>
+                                <span>{{ formatPrice(checkoutTotal) }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-muted-foreground">Shipping</span>
@@ -278,7 +317,7 @@ const handleViewOrder = () => {
 
                         <div class="flex justify-between font-bold text-lg">
                             <span>Total</span>
-                            <span class="text-primary">{{ formatPrice(cartStore.total) }}</span>
+                            <span class="text-primary">{{ formatPrice(checkoutTotal) }}</span>
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -286,7 +325,7 @@ const handleViewOrder = () => {
                             class="w-full" 
                             size="lg" 
                             @click="handleSubmit"
-                            :disabled="isSubmitting || cartStore.items.length === 0"
+                            :disabled="isSubmitting || checkoutItems.length === 0"
                         >
                             {{ isSubmitting ? 'Processing...' : 'Place Order' }}
                         </Button>
