@@ -32,7 +32,7 @@ RUN mkdir -p /var/www/storage/logs \
     /var/www/storage/framework/cache \
     /var/www/storage/framework/sessions \
     /var/www/storage/framework/views \
-    /var/www/storage/app/public \
+    /var/www/storage/app/public/products \
     /var/www/storage/api-docs \
     && chown -R www-data:www-data /var/www/storage \
     && chown -R www-data:www-data /var/www/bootstrap/cache \
