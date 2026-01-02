@@ -1,0 +1,29 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE & Editors
+.idea
+.vscode
+.fleet
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker volumes (if any)
+docker-data/
+
+# Secrets
+*.pem
+*.key
+*.crt
+*.p12
+

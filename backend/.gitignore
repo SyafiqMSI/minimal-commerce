@@ -1,0 +1,59 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+storage/logs/*
+!storage/logs/.gitkeep
+
+# Laravel
+/vendor
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/bootstrap/cache/*
+!bootstrap/cache/.gitkeep
+
+# IDE & Editors
+.DS_Store
+Thumbs.db
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+*.swp
+*.swo
+*~
+
+# PHP
+.phpactor.json
+.phpunit.result.cache
+/.phpunit.cache
+phpunit.xml
+auth.json
+
+# Homestead
+Homestead.json
+Homestead.yaml
+
+# Database
+database/*.sqlite
+database/*.sqlite-journal
+
+# Cache
+*.cache
+
+# Compiled files
+*.compiled.php
+
+# Secrets & Keys
+*.pem
+*.key
+*.crt
+*.p12

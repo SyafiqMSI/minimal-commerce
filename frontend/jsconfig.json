@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2015", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "moduleResolution": "bundler",
+    "module": "esnext"
+  },
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,15 @@
+#nprogress .bar {
+  background: var(--e-commerce-primary) !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--e-commerce-primary), 0 0 5px var(--e-commerce-primary) !important;
+}
+
+.dark #nprogress .bar {
+  background: #ddd !important;
+}
+
+.dark #nprogress .peg {
+  box-shadow: 0 0 10px #ddd, 0 0 5px #ddd !important;
+}
