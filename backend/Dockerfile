@@ -42,14 +42,16 @@ RUN mkdir -p /var/www/storage/logs \
 EXPOSE 2465
 
 CMD mkdir -p /var/www/storage/app/public/products && \
+    mkdir -p /var/www/storage/api-docs && \
     chmod -R 775 /var/www/storage/app/public && \
+    chmod -R 775 /var/www/storage/api-docs && \
     chown -R www-data:www-data /var/www/storage/app/public && \
+    chown -R www-data:www-data /var/www/storage/api-docs && \
     php artisan config:clear && \
     php artisan route:clear && \
     php artisan cache:clear && \
     php artisan config:cache && \
-    php artisan route:cache && \
+    php artisan l5-swagger:generate && \
     php artisan storage:link --force || true && \
-    php artisan l5-swagger:generate || true && \
     php artisan serve --host=0.0.0.0 --port=2465
 
