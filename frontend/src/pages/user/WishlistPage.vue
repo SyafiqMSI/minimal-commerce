@@ -205,9 +205,9 @@ const handleMoveAllToCart = async () => {
                         </div>
                     </RouterLink>
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        class="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground"
+                        class="absolute top-2 right-2 text-red-500 hover:text-red-600 hover:bg-red-500/10 backdrop-blur-sm"
                         @click.stop="handleRemoveFromWishlist(item)"
                     >
                         <Trash2 class="w-4 h-4" />

@@ -36,7 +36,16 @@ const handleSubmit = async () => {
         toast.success('Login successful!')
         router.push(authStore.isAdmin ? '/admin' : '/user')
     } else {
-        toast.error(result.message)
+        if (result.errors && Object.keys(result.errors).length > 0) {
+            const processedErrors = {}
+            for (const [key, value] of Object.entries(result.errors)) {
+                processedErrors[key] = Array.isArray(value) ? value[0] : value
+            }
+            errors.value = processedErrors
+        } else {
+            errors.value.general = result.message || 'Invalid email or password. Please try again.'
+        }
+        toast.error(result.message || 'Login failed')
     }
 }
 </script>
@@ -53,6 +62,9 @@ const handleSubmit = async () => {
             </CardHeader>
             <CardContent class="space-y-4">
                 <form @submit.prevent="handleSubmit" class="space-y-4">
+                    <div v-if="errors.general" class="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                        <p class="text-sm text-destructive font-medium">{{ errors.general }}</p>
+                    </div>
                     <div class="space-y-2">
                         <Label for="email">Email</Label>
                         <Input 
@@ -62,7 +74,9 @@ const handleSubmit = async () => {
                             placeholder="Enter your email"
                             :class="{ 'border-destructive': errors.email }"
                         />
-                        <p v-if="errors.email" class="text-sm text-destructive">{{ errors.email }}</p>
+                        <p v-if="errors.email" class="text-sm text-destructive">
+                            {{ Array.isArray(errors.email) ? errors.email[0] : errors.email }}
+                        </p>
                     </div>
                     <div class="space-y-2">
                         <Label for="password">Password</Label>
@@ -84,7 +98,9 @@ const handleSubmit = async () => {
                                 <Eye v-else class="w-4 h-4" />
                             </button>
                         </div>
-                        <p v-if="errors.password" class="text-sm text-destructive">{{ errors.password }}</p>
+                        <p v-if="errors.password" class="text-sm text-destructive">
+                            {{ Array.isArray(errors.password) ? errors.password[0] : errors.password }}
+                        </p>
                     </div>
                     <Button type="submit" class="w-full" :disabled="authStore.isLoading">
                         <Loader2 v-if="authStore.isLoading" class="w-4 h-4 mr-2 animate-spin" />

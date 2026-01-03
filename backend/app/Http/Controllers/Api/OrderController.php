@@ -386,12 +386,22 @@ class OrderController extends Controller
                 return response()->json(['message' => 'Cannot cancel order in current status'], 400);
             }
 
+            DB::beginTransaction();
+
+            $order->load('items.product');
+            
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->restoreStock($item->quantity);
+                }
+            }
+
             $order->update([
                 'status' => 'cancelled',
                 'payment_status' => $order->payment_status === 'paid' ? 'refunded' : 'failed',
             ]);
 
-            $order->load('items.product');
+            DB::commit();
 
             Log::info('Order cancelled', [
                 'order_id' => $order->id,
@@ -405,6 +415,8 @@ class OrderController extends Controller
                 'data' => $order,
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
+            
             Log::error('Failed to cancel order', [
                 'order_id' => $order->id,
                 'user_id' => $request->user()->id,
@@ -534,6 +546,19 @@ class OrderController extends Controller
             ]);
 
             $previousStatus = $order->status;
+
+            DB::beginTransaction();
+
+            if ($request->status === 'cancelled' && $previousStatus !== 'cancelled') {
+                $order->load('items.product');
+                
+                foreach ($order->items as $item) {
+                    if ($item->product) {
+                        $item->product->restoreStock($item->quantity);
+                    }
+                }
+            }
+
             $order->update([
                 'status' => $request->status,
             ]);
@@ -543,6 +568,8 @@ class OrderController extends Controller
             }
 
             $order->load('items.product', 'user');
+
+            DB::commit();
 
             Log::info('Order status updated', [
                 'order_id' => $order->id,
@@ -557,11 +584,14 @@ class OrderController extends Controller
                 'data' => $order,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            DB::rollBack();
+            
             Log::error('Failed to update order status', [
                 'order_id' => $order->id,
                 'admin_id' => $request->user()->id,

@@ -19,7 +19,13 @@ api.interceptors.response.use(
     error => {
         const { response } = error;
         if (response) {
+            const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register';
+            
             if (response.status === 401 || response.status === 403 || response.status === 502) {
+                if (isAuthPage) {
+                    return Promise.reject(error);
+                }
+                
                 try {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');

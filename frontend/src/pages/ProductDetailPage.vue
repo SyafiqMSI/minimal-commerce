@@ -95,7 +95,9 @@ const decreaseQuantity = () => {
 }
 
 const increaseQuantity = () => {
-    quantity.value++
+    if (product.value && product.value.quantity > 0 && quantity.value < product.value.quantity) {
+        quantity.value++
+    }
 }
 
 const validateQuantity = () => {
@@ -160,13 +162,24 @@ const handleBuyNow = async () => {
         return
     }
 
+    if (product.value.quantity === 0) {
+        toast.error('Product is out of stock')
+        return
+    }
+
+    if (quantity.value > product.value.quantity) {
+        toast.error(`Only ${product.value.quantity} items available in stock`)
+        return
+    }
+
     isAddingToCart.value = true
     const result = await cartStore.addToCart(product.value.id, quantity.value)
     
-    if (result.success) {
+    if (result.success && result.cartItemId) {
+        sessionStorage.setItem('checkoutItems', JSON.stringify([result.cartItemId]))
         router.push('/user/checkout')
     } else {
-        toast.error(result.message)
+        toast.error(result.message || 'Failed to add to cart')
     }
     isAddingToCart.value = false
 }
@@ -219,10 +232,10 @@ const handleBuyNow = async () => {
         </header>
 
         <div class="container mx-auto px-4 py-8">
-            <RouterLink to="/products" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+            <button @click="router.back()" class="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
                 <ArrowLeft class="w-4 h-4" />
-                Back to Products
-            </RouterLink>
+                Back
+            </button>
 
             <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
                 <Skeleton class="aspect-square rounded-2xl lg:col-span-3" />
@@ -288,7 +301,7 @@ const handleBuyNow = async () => {
                         <h3 class="text-lg font-semibold mb-3">Quantity</h3>
                         <div class="flex items-center gap-4">
                             <div class="flex items-center border rounded-lg">
-                                <Button variant="ghost" size="icon" @click="decreaseQuantity" :disabled="quantity <= 1">
+                                <Button variant="ghost" size="icon" @click="decreaseQuantity" :disabled="quantity <= 1 || product.quantity === 0">
                                     <Minus class="w-4 h-4" />
                                 </Button>
                                 <Input
@@ -297,8 +310,9 @@ const handleBuyNow = async () => {
                                     min="1"
                                     class="w-16 h-9 text-center border-0 focus:ring-0 focus:ring-offset-0 no-spinner"
                                     @input="validateQuantity"
+                                    :disabled="product.quantity === 0"
                                 />
-                                <Button variant="ghost" size="icon" @click="increaseQuantity">
+                                <Button variant="ghost" size="icon" @click="increaseQuantity" :disabled="product.quantity === 0">
                                     <Plus class="w-4 h-4" />
                                 </Button>
                             </div>

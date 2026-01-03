@@ -29,7 +29,14 @@ export const useCartStore = defineStore('cart', () => {
             items.value = response.data.data.items
             total.value = response.data.data.total
             totalItems.value = response.data.data.total_items
-            return { success: true, message: response.data.message }
+            
+            const cartItem = response.data.data.items.find(item => item.product_id === productId)
+            
+            return { 
+                success: true, 
+                message: response.data.message,
+                cartItemId: cartItem?.id
+            }
         } catch (error) {
             return {
                 success: false,

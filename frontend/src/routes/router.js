@@ -165,4 +165,9 @@ router.afterEach(() => {
     NProgress.done()
 })
 
+router.onError((error) => {
+    NProgress.done()
+    console.error('Router error:', error)
+})
+
 export default router

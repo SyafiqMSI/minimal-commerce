@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
-import { Package, Trash2, Minus, Plus, ShoppingCart, ArrowRight, Check } from 'lucide-vue-next'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Package, Trash2, Minus, Plus, ShoppingCart, ArrowRight } from 'lucide-vue-next'
 import { confirmModal } from '@/components/ui/confirmation-dialog'
 
 const router = useRouter()
@@ -186,14 +187,10 @@ const handleCheckoutAll = () => {
                     v-for="item in cartStore.items"
                     :key="item.id"
                     :class="[
-                        'border-border/50 transition-all duration-200 cursor-pointer relative',
+                        'border-border/50 transition-all duration-200 relative',
                         selectedItems.has(item.id) ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/30'
                     ]"
-                    @click="handleSelectItem(item.id)"
                 >
-                    <div v-if="selectedItems.has(item.id)" class="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                        <Check class="w-3 h-3 text-primary-foreground" />
-                    </div>
                     <CardContent class="p-4">
                         <div class="flex gap-4">
                             <RouterLink :to="`/products/${item.product.id}`" class="flex-shrink-0" @click.stop>
@@ -225,14 +222,22 @@ const handleCheckoutAll = () => {
                             </div>
 
                             <div class="flex flex-col items-end justify-between">
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    class="text-muted-foreground hover:text-destructive"
-                                    @click="handleRemoveItem(item)"
-                                >
-                                    <Trash2 class="w-4 h-4" />
-                                </Button>
+                                <div class="flex items-center gap-2">
+                                    <Checkbox 
+                                        :model-value="selectedItems.has(item.id)"
+                                        @update:model-value="() => handleSelectItem(item.id)"
+                                        @click.stop
+                                        class="w-4 h-4 mt-[1.5px]"
+                                    />
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        class="h-4 w-4 text-muted-foreground hover:text-destructive p-0"
+                                        @click.stop="handleRemoveItem(item)"
+                                    >
+                                        <Trash2 class="w-4 h-4" />
+                                    </Button>
+                                </div>
 
                                 <div class="flex items-center border rounded-lg">
                                     <Button
